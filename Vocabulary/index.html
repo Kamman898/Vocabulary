@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英语单词大闯关 - 独立进度版</title>
+    
+    <!-- 引入 Poppins 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            --success-color: #00b09b;
+            --error-color: #ff5f6d;
+            --text-main: #2d3748;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* 启动屏幕 */
+        #start-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 80vh; text-align: center; animation: popIn 0.5s;
+        }
+        .upload-area {
+            background: white; padding: 40px; border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 2px dashed #cbd5e0; transition: all 0.3s;
+        }
+        .upload-area:hover { border-color: #667eea; }
+        .start-btn {
+            background: var(--primary-gradient); color: white; font-size: 18px; padding: 15px 40px;
+            border: none; border-radius: 50px; cursor: pointer; margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); transition: transform 0.2s;
+        }
+        .start-btn:hover { transform: scale(1.05); }
+
+        /* 游戏主界面 */
+        #game-interface { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+        /* 顶部状态栏 */
+        .header-stats {
+            display: flex; gap: 15px; margin-bottom: 20px; background: white;
+            padding: 8px 20px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: bold; font-size: 14px; color: #718096;
+        }
+
+        /* 标题 */
+        h1 {
+            margin: 5px 0 20px; background: var(--primary-gradient);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-size: 28px; font-weight: 800; text-align: center;
+        }
+
+        /* 主导航 (Main Tabs) */
+        .main-nav {
+            display: flex; background: white; padding: 5px; border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px;
+        }
+        .main-tab-btn {
+            padding: 12px 25px; border: none; background: transparent;
+            font-weight: 800; color: #718096; cursor: pointer; border-radius: 12px; transition: all 0.3s;
+        }
+        .main-tab-btn.active {
+            background: var(--primary-gradient); color: white;
+            box-shadow: 0 4px 6px rgba(118, 75, 162, 0.3);
+        }
+        .main-tab-btn.active-spell {
+            background: var(--secondary-gradient); color: white;
+            box-shadow: 0 4px 6px rgba(253, 160, 133, 0.4);
+        }
+
+        /* 容器通用样式 */
+        .module-container {
+            width: 100%; max-width: 500px; background: white; padding: 25px;
+            border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            position: relative; min-height: 400px; display: none; animation: fadeIn 0.3s;
+        }
+        .module-container.active { display: block; }
+
+        /* 模块内部顶部栏 (进度显示) */
+        .module-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; border-bottom: 1px solid #edf2f7; padding-bottom: 15px;
+        }
+        .progress-badge {
+            font-size: 14px; font-weight: bold; color: var(--success-color);
+            background: #f0fdf4; padding: 5px 12px; border-radius: 20px;
+        }
+
+        /* 子模块切换开关 */
+        .sub-nav { display: flex; gap: 10px; }
+        .sub-btn {
+            background: #edf2f7; border: none; padding: 6px 15px; border-radius: 20px;
+            font-size: 13px; font-weight: bold; color: #718096; cursor: pointer; transition: all 0.2s;
+        }
+        .sub-btn.active { background: #4a5568; color: white; }
+        .sub-btn:hover:not(.active) { background: #e2e8f0; }
+
+        /* 内容区域通用 */
+        .view-section { display: none; }
+        .view-section.active { display: block; }
+
+        /* --- 1. 选择题样式 --- */
+        .quiz-word-display {
+            font-size: 32px; font-weight: 800; text-align: center; color: #2d3748; margin: 10px 0 25px;
+        }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .option-btn {
+            background: #f7fafc; border: 2px solid #edf2f7; padding: 15px; border-radius: 12px;
+            color: #4a5568; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: left;
+        }
+        .option-btn:hover:not(:disabled) { border-color: #cbd5e0; transform: translateY(-2px); background: white; }
+        .option-btn.correct { background: var(--success-color); color: white; border-color: var(--success-color); }
+        .option-btn.wrong { background: var(--error-color); color: white; border-color: var(--error-color); }
+
+        /* --- 2. 拼写题样式 --- */
+        .spell-def-display {
+            font-size: 20px; font-weight: bold; text-align: center; color: #4a5568; margin: 20px 0;
+            min-height: 60px; display: flex; align-items: center; justify-content: center;
+        }
+        
+        .spell-input {
+            width: 100%; padding: 15px 20px; font-size: 26px; text-align: center;
+            border: 2px solid transparent; border-radius: 16px; margin-bottom: 20px;
+            background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            font-family: 'Google Sans', 'Product Sans', 'Poppins', sans-serif;
+            font-weight: 500; color: #2d3748; letter-spacing: 1.5px;
+            outline: none; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-sizing: border-box;
+        }
+        .spell-input:focus { border-color: #667eea; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2); transform: translateY(-2px); }
+        .spell-input.success { border-color: var(--success-color); color: var(--success-color); background-color: #f0fdf4; }
+        .spell-input.error { border-color: var(--error-color); color: var(--error-color); background-color: #fff5f5; animation: shake 0.4s; }
+
+        .spell-check-btn {
+            width: 100%; padding: 15px; background: var(--secondary-gradient); color: white;
+            border: none; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(253, 160, 133, 0.4); transition: transform 0.2s;
+        }
+        .spell-check-btn:hover { transform: scale(1.02); }
+        .spell-feedback { text-align: center; margin-top: 15px; font-weight: bold; height: 30px;}
+
+        /* --- 3. 排行榜样式 --- */
+        .leaderboard-list {
+            display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;
+        }
+        .lb-item {
+            display: flex; justify-content: space-between; align-items: center; padding: 10px 15px;
+            background: #fff5f5; border-radius: 10px; border-left: 4px solid #e53e3e; cursor: pointer;
+        }
+        .lb-item:hover { background-color: #ffebeb; }
+        .lb-count { background: #e53e3e; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+
+        /* 底部按钮 */
+        .btn-next {
+            width: 100%; margin-top: 20px; padding: 15px; background: var(--text-main);
+            color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; display: none;
+        }
+        
+        /* 底部功能区 */
+        .footer-controls {
+            margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; max-width: 500px;
+        }
+        .data-btn {
+            background: white; border: 1px solid #cbd5e0; padding: 8px 15px; border-radius: 8px;
+            font-size: 13px; font-weight: bold; color: #718096; cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
+
+        @keyframes popIn { 0% { transform: scale(0); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        
+    </style>
+</head>
+<body>
+
+    <!-- 启动屏幕 -->
+    <div id="start-screen">
+        <div class="upload-area">
+            <h1>Word Warrior</h1>
+            <p style="color:#718096; margin-bottom:20px;">请加载您的 JSON 词库文件开始训练</p>
+            <button class="start-btn" onclick="document.getElementById('file-input').click()">📂 加载词库文件</button>
+            <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileLoad(event)">
+        </div>
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div id="game-interface">
+        <div class="header-stats">
+            <div>📚 词库总数: <span id="total-words">0</span></div>
+        </div>
+
+        <h1>Word Warrior</h1>
+
+        <!-- 主导航 -->
+        <div class="main-nav">
+            <button class="main-tab-btn active" id="tab-quiz" onclick="switchMainTab('quiz')">⚔️ 英译中 (选择)</button>
+            <button class="main-tab-btn" id="tab-spell" onclick="switchMainTab('spell')">🔤 中译英 (拼写)</button>
+        </div>
+
+        <!-- 模块1：选择题 -->
+        <div id="module-quiz" class="module-container active">
+            <div class="module-header">
+                <div class="sub-nav">
+                    <button class="sub-btn active" onclick="switchSubTab('quiz', 'game')">开始挑战</button>
+                    <button class="sub-btn" onclick="switchSubTab('quiz', 'lb')">错题榜</button>
+                </div>
+                <!-- 独立进度显示 -->
+                <div class="progress-badge">已掌握: <span id="quiz-mastered">0</span>/<span class="total-display">0</span></div>
+            </div>
+
+            <!-- 游戏视图 -->
+            <div id="quiz-view-game" class="view-section active">
+                <div class="quiz-word-display" id="quiz-word">Question</div>
+                <div class="options-grid" id="quiz-options"></div>
+                <div id="quiz-result" style="text-align:center; margin-top:15px; height:20px; font-weight:bold;"></div>
+                <button class="btn-next" id="btn-quiz-next" onclick="generateQuiz()">下一题 ➜</button>
+            </div>
+
+            <!-- 错题榜视图 -->
+            <div id="quiz-view-lb" class="view-section">
+                <div id="quiz-lb-list" class="leaderboard-list"></div>
+                <div style="text-align:center; margin-top:10px; color:#a0aec0; font-size:12px;">这里只显示选择题做错的单词</div>
+            </div>
+        </div>
+
+        <!-- 模块2：拼写题 -->
+        <div id="module-spell" class="module-container">
+            <div class="module-header">
+                <div class="sub-nav">
+                    <button class="sub-btn active" onclick="switchSubTab('spell', 'game')">拼写挑战</button>
+                    <button class="sub-btn" onclick="switchSubTab('spell', 'lb')">拼写错题</button>
+                </div>
+                <!-- 独立进度显示 -->
+                <div class="progress-badge">已掌握: <span id="spell-mastered">0</span>/<span class="total-display">0</span></div>
+            </div>
+
+            <!-- 拼写游戏视图 -->
+            <div id="spell-view-game" class="view-section active">
+                <div style="text-align:center; color:#718096; font-size:14px;">请根据释义拼写单词</div>
+                <div class="spell-def-display" id="spell-def">Definition</div>
+                
+                <input type="text" class="spell-input" id="spell-input" placeholder="输入单词..." autocomplete="off" spellcheck="false">
+                
+                <button class="spell-check-btn" id="spell-check-btn" onclick="checkSpell()">Check ✔</button>
+                <div class="spell-feedback" id="spell-feedback"></div>
+                <button class="btn-next" id="btn-spell-next" onclick="generateSpell()">下一题 ➜</button>
+            </div>
+
+            <!-- 拼写错题榜 -->
+            <div id="spell-view-lb" class="view-section">
+                <div id="spell-lb-list" class="leaderboard-list"></div>
+                <div style="text-align:center; margin-top:10px; color:#a0aec0; font-size:12px;">这里只显示拼写错误的单词</div>
+            </div>
+        </div>
+
+        <!-- 底部数据管理 -->
+        <div class="footer-controls">
+            <button class="data-btn" onclick="exportData()">💾 导出进度</button>
+            <button class="data-btn" onclick="document.getElementById('import-file').click()">📂 导入恢复</button>
+            <button class="data-btn" style="color:#5a67d8; border-color:#667eea;" onclick="document.getElementById('file-input').click()">📖 切换词库</button>
+            <input type="file" id="import-file" style="display:none" onchange="importData(event)">
+        </div>
+    </div>
+
+    <script>
+        // --- 全局状态 ---
+        let rawWords = [];
+        let quizRemaining = [];
+        let spellRemaining = [];
+        let currentQuizTarget = null;
+        let currentSpellTarget = null;
+        let audioCtx;
+
+        // --- 1. 初始化与文件加载 ---
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data) || !data[0].w) throw new Error("Format");
+                    
+                    rawWords = data;
+                    rawWords.forEach(w => {
+                        w.quizErr = w.quizErr || 0;
+                        w.spellErr = w.spellErr || 0;
+                    });
+
+                    quizRemaining = [...rawWords];
+                    spellRemaining = [...rawWords];
+
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('game-interface').style.display = 'flex';
+                    
+                    updateTotalCounts();
+                    generateQuiz();
+                    generateSpell();
+
+                } catch (err) { alert("文件格式错误，请上传标准 JSON 词库"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // 更新各处显示的数字
+        function updateTotalCounts() {
+            const total = rawWords.length;
+            document.getElementById('total-words').innerText = total;
+            document.querySelectorAll('.total-display').forEach(el => el.innerText = total);
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = rawWords.length;
+            if(total === 0) return;
+            document.getElementById('quiz-mastered').innerText = total - quizRemaining.length;
+            document.getElementById('spell-mastered').innerText = total - spellRemaining.length;
+        }
+
+        // --- 2. 导航切换逻辑 ---
+        function switchMainTab(mode) {
+            document.getElementById('tab-quiz').className = mode === 'quiz' ? 'main-tab-btn active' : 'main-tab-btn';
+            document.getElementById('tab-spell').className = mode === 'spell' ? 'main-tab-btn active-spell' : 'main-tab-btn';
+            
+            document.getElementById('module-quiz').className = mode === 'quiz' ? 'module-container active' : 'module-container';
+            document.getElementById('module-spell').className = mode === 'spell' ? 'module-container active' : 'module-container';
+        }
+
+        function switchSubTab(module, view) {
+            const container = document.getElementById(`module-${module}`);
+            const btns = container.querySelectorAll('.sub-btn');
+            const views = container.querySelectorAll('.view-section');
+            const idx = view === 'game' ? 0 : 1;
+            
+            btns.forEach(b => b.classList.remove('active'));
+            btns[idx].classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            views[idx].classList.add('active');
+
+            if(view === 'lb') {
+                if(module === 'quiz') updateQuizLeaderboard();
+                if(module === 'spell') updateSpellLeaderboard();
+            }
+        }
+
+        // --- 3. 选择题逻辑 (Quiz) ---
+        function generateQuiz() {
+            document.getElementById('quiz-result').innerText = "";
+            document.getElementById('btn-quiz-next').style.display = "none";
+
+            if (quizRemaining.length === 0) {
+                document.getElementById('quiz-word').innerText = "🎉 通关！";
+                document.getElementById('quiz-options').innerHTML = "<div style='text-align:center; padding:20px; color:#718096;'>您已掌握所有单词的选择题！</div>";
+                updateProgress();
+                return;
+            }
+
+            const idx = Math.floor(Math.random() * quizRemaining.length);
+            currentQuizTarget = quizRemaining[idx];
+            document.getElementById('quiz-word').innerText = currentQuizTarget.w;
+
+            let options = [currentQuizTarget];
+            while (options.length < 4) {
+                let randomW = rawWords[Math.floor(Math.random() * rawWords.length)];
+                if (!options.includes(randomW)) options.push(randomW);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt.d;
+                btn.onclick = () => checkQuiz(btn, opt.w);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkQuiz(btn, selectedW) {
+            const btns = document.querySelectorAll('#quiz-options .option-btn');
+            btns.forEach(b => b.disabled = true);
+            const isCorrect = selectedW === currentQuizTarget.w;
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                playSound('correct');
+                document.getElementById('quiz-result').innerText = "✅ 正确";
+                document.getElementById('quiz-result').style.color = "#00b09b";
+                quizRemaining = quizRemaining.filter(w => w.w !== currentQuizTarget.w);
+                speak(currentQuizTarget.w);
+            } else {
+                btn.classList.add('wrong');
+                playSound('wrong');
+                document.getElementById('quiz-result').innerText = "❌ 错误";
+                document.getElementById('quiz-result').style.color = "#ff5f6d";
+                currentQuizTarget.quizErr++;
+                btns.forEach(b => { if(b.innerText === currentQuizTarget.d) b.classList.add('correct'); });
+            }
+            updateProgress();
+            document.getElementById('btn-quiz-next').style.display = "block";
+        }
+
+        function updateQuizLeaderboard() {
+            const list = document.getElementById('quiz-lb-list');
+            list.innerHTML = "";
+            const badWords = rawWords.filter(w => w.quizErr > 0).sort((a,b) => b.quizErr - a.quizErr);
+            
+            if(badWords.length === 0) list.innerHTML = "<div style='text-align:center;color:#ccc;margin-top:20px;'>暂无错题</div>";
+            
+            badWords.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'lb-item';
+                div.innerHTML = `<span><b>${w.w}</b> <small>${w.d}</small></span><span class="lb-count">${w.quizErr}</span>`;
+                div.onclick = () => speak(w.w);
+                list.appendChild(div);
+            });
+        }
+
+        // --- 4. 拼写题逻辑 (Spelling) ---
+        
+        document.getElementById('spell-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                if(document.getElementById('btn-spell-next').style.display === 'block') {
+                    generateSpell();
+                } else {
+                    checkSpell();
+                }
+            }
+        });
+
+        function generateSpell() {
+            document.getElementById('spell-feedback').innerText = "";
+            const inputEl = document.getElementById('spell-input');
+            inputEl.value = "";
+            inputEl.disabled = false;
+            inputEl.classList.remove('success', 'error');
+            
+            document.getElementById('spell-check-btn').style.display = "block";
+            document.getElementById('btn-spell-next').style.display = "none";
+            inputEl.focus();
+
+            if (spellRemaining.length === 0) {
+                document.getElementById('spell-def').innerText = "🎉 拼写挑战通关！";
+                document.getElementById('spell-check-btn').style.display = "none";
+                updateProgress();
+                return;
+            }
+
+            const idx = Math.floor(Math.random() * spellRemaining.length);
+            currentSpellTarget = spellRemaining[idx];
+            document.getElementById('spell-def').innerText = currentSpellTarget.d;
+        }
+
+        function checkSpell() {
+            const inputEl = document.getElementById('spell-input');
+            const input = inputEl.value.trim().toLowerCase();
+            const correct = currentSpellTarget.w.toLowerCase();
+            const feedback = document.getElementById('spell-feedback');
+
+            inputEl.disabled = true;
+            document.getElementById('spell-check-btn').style.display = "none";
+            document.getElementById('btn-spell-next').style.display = "block";
+
+            if (input === correct) {
+                inputEl.classList.add('success');
+                feedback.innerText = "✨ Excellent!";
+                feedback.style.color = "#00b09b";
+                playSound('correct');
+                spellRemaining = spellRemaining.filter(w => w.w !== currentSpellTarget.w);
+                speak(correct);
+            } else {
+                inputEl.classList.add('error');
+                feedback.innerHTML = `❌ 正确拼写: <span style="color:#2d3748;font-family:'Poppins',sans-serif;font-weight:bold;">${currentSpellTarget.w}</span>`;
+                feedback.style.color = "#ff5f6d";
+                playSound('wrong');
+                currentSpellTarget.spellErr++;
+            }
+            updateProgress();
+        }
+
+        function updateSpellLeaderboard() {
+            const list = document.getElementById('spell-lb-list');
+            list.innerHTML = "";
+            const badWords = rawWords.filter(w => w.spellErr > 0).sort((a,b) => b.spellErr - a.spellErr);
+            
+            if(badWords.length === 0) list.innerHTML = "<div style='text-align:center;color:#ccc;margin-top:20px;'>暂无拼写错误</div>";
+            
+            badWords.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'lb-item';
+                div.innerHTML = `<span><b>${w.w}</b> <small>${w.d}</small></span><span class="lb-count">${w.spellErr}</span>`;
+                div.onclick = () => speak(w.w);
+                list.appendChild(div);
+            });
+        }
+
+        // --- 5. 数据导入导出 ---
+        function exportData() {
+            if(rawWords.length === 0) return;
+            const data = {
+                timestamp: new Date().toISOString(),
+                rawWords: rawWords,
+                quizRem: quizRemaining.map(w=>w.w),
+                spellRem: spellRemaining.map(w=>w.w)
+            };
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'WordWarrior_Progress.json'; a.click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    rawWords = data.rawWords;
+                    
+                    quizRemaining = rawWords.filter(w => data.quizRem.includes(w.w));
+                    spellRemaining = rawWords.filter(w => data.spellRem.includes(w.w));
+                    
+                    updateTotalCounts();
+                    generateQuiz();
+                    generateSpell();
+                    alert("进度已恢复！");
+                } catch(err) { alert("进度文件无效"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 辅助功能 ---
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playSound(type) {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+        function speak(text) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+    </script>
+</body>
+</html>
