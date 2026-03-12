@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Word Warrior - iOS Edition</title>
+    
+    <!-- 引入英文字体优化单词显示 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* iOS Color Palette */
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-blue-active: #0056b3;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-text-primary: #000000;
+            --ios-text-secondary: #8E8E93;
+            --ios-separator: #C6C6C8;
+            --ios-segmented-bg: #E5E5EA;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--ios-bg);
+            color: var(--ios-text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 16px;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .english-text {
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        /* Typography */
+        h1.app-title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 10px 0 5px;
+            text-align: center;
+        }
+        .subtitle {
+            color: var(--ios-text-secondary);
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        /* Base Card Style */
+        .ios-card {
+            background: var(--ios-card);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        /* Primary Button */
+        .ios-btn {
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 17px;
+            font-weight: 600;
+            width: 100%;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .ios-btn:active { background: var(--ios-blue-active); transform: scale(0.98); }
+        .ios-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Secondary Button (Text only) */
+        .ios-btn-text {
+            background: transparent;
+            color: var(--ios-blue);
+            border: none;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 8px 16px;
+        }
+        .ios-btn-text:active { opacity: 0.7; }
+
+        /* Start Screen */
+        #start-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 85vh; width: 100%; max-width: 400px;
+        }
+        .icon-large { font-size: 72px; margin-bottom: 16px; }
+
+        /* Game Interface */
+        #game-interface { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+        /* Header Stats */
+        .stats-bar {
+            display: flex; justify-content: space-between; width: 100%; max-width: 480px;
+            margin-bottom: 16px; padding: 0 8px; font-size: 14px; color: var(--ios-text-secondary);
+            font-weight: 500;
+        }
+
+        /* iOS Segmented Control */
+        .segmented-control {
+            display: flex;
+            background: var(--ios-segmented-bg);
+            border-radius: 9px;
+            padding: 2px;
+            width: 100%;
+            max-width: 480px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .segmented-btn {
+            flex: 1; text-align: center; padding: 8px 0; border-radius: 7px;
+            font-size: 14px; font-weight: 600; color: var(--ios-text-primary);
+            cursor: pointer; transition: all 0.2s; position: relative; z-index: 2;
+        }
+        .segmented-btn.active {
+            background: white;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0,0,0,0.04);
+        }
+
+        /* View Sections */
+        .module-section { display: none; width: 100%; max-width: 480px; }
+        .module-section.active { display: block; animation: fadeUp 0.3s ease-out; }
+        .view-content { display: none; }
+        .view-content.active { display: block; }
+
+        /* Progress Info */
+        .progress-info {
+            font-size: 13px; color: var(--ios-text-secondary); text-align: center; margin-bottom: 20px;
+        }
+        .progress-info span { color: var(--ios-green); font-weight: 600; }
+
+        /* Quiz Styles */
+        .quiz-word {
+            font-size: 34px; font-weight: 700; text-align: center; margin: 10px 0 30px;
+            letter-spacing: -0.5px;
+        }
+        .option-list { display: flex; flex-direction: column; gap: 12px; }
+        .option-item {
+            background: var(--ios-bg);
+            border: 2px solid transparent;
+            padding: 16px 20px;
+            border-radius: 14px;
+            font-size: 16px;
+            color: var(--ios-text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .option-item:active:not(:disabled) { background: #E5E5EA; transform: scale(0.98); }
+        .option-item.correct { background: #E2F5EA; border-color: var(--ios-green); color: #1E7E34; }
+        .option-item.wrong { background: #FFEBEE; border-color: var(--ios-red); color: #C62828; }
+
+        .result-feedback { text-align: center; margin-top: 20px; font-weight: 600; height: 24px; font-size: 16px; }
+
+        /* Spelling Styles */
+        .spell-def {
+            font-size: 18px; font-weight: 500; text-align: center; margin: 20px 0 30px;
+            line-height: 1.4; color: var(--ios-text-primary);
+        }
+        .spell-input {
+            width: 100%; padding: 18px; font-size: 28px; text-align: center;
+            background: var(--ios-bg); border: 2px solid transparent; border-radius: 14px;
+            margin-bottom: 24px; font-weight: 600; color: var(--ios-text-primary);
+            outline: none; transition: all 0.2s; letter-spacing: 2px;
+        }
+        .spell-input:focus { border-color: var(--ios-blue); background: white; box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1); }
+        .spell-input.success { border-color: var(--ios-green); color: var(--ios-green); background: #E2F5EA; }
+        .spell-input.error { border-color: var(--ios-red); color: var(--ios-red); background: #FFEBEE; }
+
+        /* Leaderboard (iOS List Style) */
+        .ios-list {
+            background: white; border-radius: 14px; overflow: hidden; margin-top: 10px;
+            box-shadow: 0 1px 10px rgba(0,0,0,0.03);
+        }
+        .ios-list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px; border-bottom: 0.5px solid var(--ios-separator); cursor: pointer;
+        }
+        .ios-list-item:last-child { border-bottom: none; }
+        .ios-list-item:active { background: var(--ios-bg); }
+        
+        .list-text { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .list-word { font-size: 17px; font-weight: 600; color: var(--ios-text-primary); }
+        .list-def { font-size: 13px; color: var(--ios-text-secondary); }
+        
+        .list-badge {
+            background: var(--ios-red); color: white; font-size: 13px; font-weight: 600;
+            padding: 4px 10px; border-radius: 20px;
+        }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--ios-text-secondary); font-size: 15px; }
+
+        /* Footer Controls */
+        .footer-actions {
+            display: flex; justify-content: center; gap: 15px; margin-top: 20px; width: 100%; max-width: 480px; flex-wrap: wrap;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 启动屏幕 -->
+    <div id="start-screen">
+        <div class="icon-large">📘</div>
+        <h1 class="app-title">Word Warrior</h1>
+        <p class="subtitle">导入您的单词库开始训练</p>
+        <button class="ios-btn" onclick="document.getElementById('file-input').click()">加载 JSON 词库</button>
+        <input type="file" id="file-input" style="display: none;" accept=".json" onchange="handleFileLoad(event)">
+    </div>
+
+    <!-- 游戏主界面 -->
+    <div id="game-interface">
+        <h1 class="app-title" style="font-size: 24px;">Word Warrior</h1>
+        
+        <div class="stats-bar">
+            <span>总词数: <span id="total-words" style="color:var(--ios-text-primary);font-weight:600;">0</span></span>
+            <span style="color:var(--ios-blue)" onclick="document.getElementById('file-input').click()">切换词库</span>
+        </div>
+
+        <!-- 主导航 (分段选择器) -->
+        <div class="segmented-control">
+            <div class="segmented-btn active" id="tab-quiz" onclick="switchMainTab('quiz')">选择题</div>
+            <div class="segmented-btn" id="tab-spell" onclick="switchMainTab('spell')">拼写题</div>
+        </div>
+
+        <!-- ================= 模块1：选择题 ================= -->
+        <div id="module-quiz" class="module-section active">
+            
+            <div class="segmented-control" style="background:transparent; border:1px solid var(--ios-segmented-bg); margin-bottom:15px;">
+                <div class="segmented-btn active sub-quiz" onclick="switchSubTab('quiz', 'game')">挑战</div>
+                <div class="segmented-btn sub-quiz" onclick="switchSubTab('quiz', 'lb')">错题本</div>
+            </div>
+
+            <!-- 游戏视图 -->
+            <div id="quiz-view-game" class="ios-card view-content active">
+                <div class="progress-info">已掌握: <span id="quiz-mastered">0</span> / <span class="total-display">0</span></div>
+                
+                <div class="quiz-word english-text" id="quiz-word">Question</div>
+                <div class="option-list" id="quiz-options"></div>
+                <div class="result-feedback" id="quiz-result"></div>
+                
+                <button class="ios-btn" id="btn-quiz-next" style="display:none; margin-top:20px;" onclick="generateQuiz()">下一题</button>
+            </div>
+
+            <!-- 错题榜视图 -->
+            <div id="quiz-view-lb" class="view-content">
+                <div class="subtitle" style="margin-bottom:10px;">选择题错误记录</div>
+                <div id="quiz-lb-list" class="ios-list"></div>
+            </div>
+        </div>
+
+        <!-- ================= 模块2：拼写题 ================= -->
+        <div id="module-spell" class="module-section">
+            
+            <div class="segmented-control" style="background:transparent; border:1px solid var(--ios-segmented-bg); margin-bottom:15px;">
+                <div class="segmented-btn active sub-spell" onclick="switchSubTab('spell', 'game')">挑战</div>
+                <div class="segmented-btn sub-spell" onclick="switchSubTab('spell', 'lb')">错题本</div>
+            </div>
+
+            <!-- 拼写游戏视图 -->
+            <div id="spell-view-game" class="ios-card view-content active">
+                <div class="progress-info">已掌握: <span id="spell-mastered">0</span> / <span class="total-display">0</span></div>
+                
+                <div class="spell-def" id="spell-def">Definition</div>
+                <input type="text" class="spell-input english-text" id="spell-input" placeholder="输入英文..." autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off">
+                
+                <button class="ios-btn" id="spell-check-btn" onclick="checkSpell()">检查拼写</button>
+                <div class="result-feedback" id="spell-feedback"></div>
+                <button class="ios-btn" id="btn-spell-next" style="display:none; margin-top:20px;" onclick="generateSpell()">下一题</button>
+            </div>
+
+            <!-- 拼写错题榜 -->
+            <div id="spell-view-lb" class="view-content">
+                <div class="subtitle" style="margin-bottom:10px;">拼写题错误记录</div>
+                <div id="spell-lb-list" class="ios-list"></div>
+            </div>
+        </div>
+
+        <!-- 底部数据管理 -->
+        <div class="footer-actions">
+            <button class="ios-btn-text" onclick="exportData()">导出进度存档</button>
+            <span style="color:var(--ios-separator)">|</span>
+            <button class="ios-btn-text" onclick="document.getElementById('import-file').click()">恢复进度</button>
+            <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+        </div>
+    </div>
+
+    <script>
+        // --- 全局状态 ---
+        let rawWords = [];
+        let quizRemaining = [];
+        let spellRemaining = [];
+        let currentQuizTarget = null;
+        let currentSpellTarget = null;
+        let audioCtx;
+
+        // --- 1. 初始化与文件加载 ---
+        function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!Array.isArray(data) || !data[0].w) throw new Error("Format");
+                    
+                    rawWords = data;
+                    rawWords.forEach(w => {
+                        w.quizErr = w.quizErr || 0;
+                        w.spellErr = w.spellErr || 0;
+                    });
+
+                    quizRemaining = [...rawWords];
+                    spellRemaining = [...rawWords];
+
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('game-interface').style.display = 'flex';
+                    
+                    updateTotalCounts();
+                    generateQuiz();
+                    generateSpell();
+
+                } catch (err) { alert("文件格式错误，请上传标准的 JSON 词库"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function updateTotalCounts() {
+            const total = rawWords.length;
+            document.getElementById('total-words').innerText = total;
+            document.querySelectorAll('.total-display').forEach(el => el.innerText = total);
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = rawWords.length;
+            if(total === 0) return;
+            document.getElementById('quiz-mastered').innerText = total - quizRemaining.length;
+            document.getElementById('spell-mastered').innerText = total - spellRemaining.length;
+        }
+
+        // --- 2. 导航切换逻辑 ---
+        function switchMainTab(mode) {
+            const tabQuiz = document.getElementById('tab-quiz');
+            const tabSpell = document.getElementById('tab-spell');
+            const modQuiz = document.getElementById('module-quiz');
+            const modSpell = document.getElementById('module-spell');
+
+            if (mode === 'quiz') {
+                tabQuiz.classList.add('active'); tabSpell.classList.remove('active');
+                modQuiz.classList.add('active'); modSpell.classList.remove('active');
+            } else {
+                tabSpell.classList.add('active'); tabQuiz.classList.remove('active');
+                modSpell.classList.add('active'); modQuiz.classList.remove('active');
+                // 切换到拼写时自动聚焦
+                if(document.getElementById('spell-check-btn').style.display !== 'none') {
+                    document.getElementById('spell-input').focus();
+                }
+            }
+        }
+
+        function switchSubTab(module, view) {
+            const container = document.getElementById(`module-${module}`);
+            const btns = container.querySelectorAll(`.sub-${module}`);
+            const views = container.querySelectorAll('.view-content');
+            
+            const idx = view === 'game' ? 0 : 1;
+            
+            btns.forEach(b => b.classList.remove('active'));
+            btns[idx].classList.add('active');
+
+            views.forEach(v => v.classList.remove('active'));
+            views[idx].classList.add('active');
+
+            if(view === 'lb') {
+                if(module === 'quiz') updateQuizLeaderboard();
+                if(module === 'spell') updateSpellLeaderboard();
+            } else {
+                if(module === 'spell') document.getElementById('spell-input').focus();
+            }
+        }
+
+        // --- 3. 选择题逻辑 (Quiz) ---
+        function generateQuiz() {
+            document.getElementById('quiz-result').innerText = "";
+            document.getElementById('btn-quiz-next').style.display = "none";
+
+            if (quizRemaining.length === 0) {
+                document.getElementById('quiz-word').innerText = "🎉";
+                document.getElementById('quiz-options').innerHTML = "<div class='empty-state'>您已掌握所有单词的选择题！</div>";
+                updateProgress();
+                return;
+            }
+
+            const idx = Math.floor(Math.random() * quizRemaining.length);
+            currentQuizTarget = quizRemaining[idx];
+            document.getElementById('quiz-word').innerText = currentQuizTarget.w;
+
+            let options = [currentQuizTarget];
+            while (options.length < 4) {
+                let randomW = rawWords[Math.floor(Math.random() * rawWords.length)];
+                if (!options.includes(randomW)) options.push(randomW);
+            }
+            options.sort(() => Math.random() - 0.5);
+
+            const container = document.getElementById('quiz-options');
+            container.innerHTML = '';
+            options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-item';
+                btn.innerText = opt.d;
+                btn.onclick = () => checkQuiz(btn, opt.w);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkQuiz(btn, selectedW) {
+            const btns = document.querySelectorAll('#quiz-options .option-item');
+            btns.forEach(b => b.disabled = true);
+            const isCorrect = selectedW === currentQuizTarget.w;
+
+            const resDiv = document.getElementById('quiz-result');
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                playSound('correct');
+                resDiv.innerText = "正确";
+                resDiv.style.color = "var(--ios-green)";
+                quizRemaining = quizRemaining.filter(w => w.w !== currentQuizTarget.w);
+                speak(currentQuizTarget.w);
+            } else {
+                btn.classList.add('wrong');
+                playSound('wrong');
+                resDiv.innerText = "错误";
+                resDiv.style.color = "var(--ios-red)";
+                currentQuizTarget.quizErr++;
+                btns.forEach(b => { if(b.innerText === currentQuizTarget.d) b.classList.add('correct'); });
+            }
+            updateProgress();
+            document.getElementById('btn-quiz-next').style.display = "block";
+        }
+
+        function updateQuizLeaderboard() {
+            const list = document.getElementById('quiz-lb-list');
+            list.innerHTML = "";
+            const badWords = rawWords.filter(w => w.quizErr > 0).sort((a,b) => b.quizErr - a.quizErr);
+            
+            if(badWords.length === 0) {
+                list.innerHTML = "<div class='empty-state'>太棒了！<br>暂无选择题错误记录</div>";
+                return;
+            }
+            
+            badWords.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'ios-list-item';
+                div.innerHTML = `
+                    <div class="list-text">
+                        <span class="list-word english-text">${w.w}</span>
+                        <span class="list-def">${w.d}</span>
+                    </div>
+                    <span class="list-badge">${w.quizErr}</span>
+                `;
+                div.onclick = () => speak(w.w);
+                list.appendChild(div);
+            });
+        }
+
+        // --- 4. 拼写题逻辑 (Spelling) ---
+        document.getElementById('spell-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                if(document.getElementById('btn-spell-next').style.display === 'block') {
+                    generateSpell();
+                } else {
+                    checkSpell();
+                }
+            }
+        });
+
+        function generateSpell() {
+            document.getElementById('spell-feedback').innerText = "";
+            const inputEl = document.getElementById('spell-input');
+            inputEl.value = "";
+            inputEl.disabled = false;
+            inputEl.classList.remove('success', 'error');
+            
+            document.getElementById('spell-check-btn').style.display = "block";
+            document.getElementById('btn-spell-next').style.display = "none";
+            inputEl.focus();
+
+            if (spellRemaining.length === 0) {
+                document.getElementById('spell-def').innerText = "🎉";
+                document.getElementById('spell-input').style.display = "none";
+                document.getElementById('spell-check-btn').style.display = "none";
+                document.getElementById('spell-feedback').innerText = "您已掌握所有拼写！";
+                updateProgress();
+                return;
+            }
+
+            document.getElementById('spell-input').style.display = "block";
+            const idx = Math.floor(Math.random() * spellRemaining.length);
+            currentSpellTarget = spellRemaining[idx];
+            document.getElementById('spell-def').innerText = currentSpellTarget.d;
+        }
+
+        function checkSpell() {
+            const inputEl = document.getElementById('spell-input');
+            const input = inputEl.value.trim().toLowerCase();
+            if(!input) return; // Prevent empty check
+
+            const correct = currentSpellTarget.w.toLowerCase();
+            const feedback = document.getElementById('spell-feedback');
+
+            inputEl.disabled = true;
+            document.getElementById('spell-check-btn').style.display = "none";
+            document.getElementById('btn-spell-next').style.display = "block";
+
+            if (input === correct) {
+                inputEl.classList.add('success');
+                feedback.innerText = "拼写正确";
+                feedback.style.color = "var(--ios-green)";
+                playSound('correct');
+                spellRemaining = spellRemaining.filter(w => w.w !== currentSpellTarget.w);
+                speak(correct);
+            } else {
+                inputEl.classList.add('error');
+                feedback.innerHTML = `正确: <span class="english-text" style="color:var(--ios-text-primary);">${currentSpellTarget.w}</span>`;
+                feedback.style.color = "var(--ios-red)";
+                playSound('wrong');
+                currentSpellTarget.spellErr++;
+            }
+            updateProgress();
+        }
+
+        function updateSpellLeaderboard() {
+            const list = document.getElementById('spell-lb-list');
+            list.innerHTML = "";
+            const badWords = rawWords.filter(w => w.spellErr > 0).sort((a,b) => b.spellErr - a.spellErr);
+            
+            if(badWords.length === 0) {
+                list.innerHTML = "<div class='empty-state'>太棒了！<br>暂无拼写错误记录</div>";
+                return;
+            }
+            
+            badWords.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'ios-list-item';
+                div.innerHTML = `
+                    <div class="list-text">
+                        <span class="list-word english-text">${w.w}</span>
+                        <span class="list-def">${w.d}</span>
+                    </div>
+                    <span class="list-badge">${w.spellErr}</span>
+                `;
+                div.onclick = () => speak(w.w);
+                list.appendChild(div);
+            });
+        }
+
+        // --- 5. 数据导入导出 ---
+        function exportData() {
+            if(rawWords.length === 0) return;
+            const data = {
+                timestamp: new Date().toISOString(),
+                rawWords: rawWords,
+                quizRem: quizRemaining.map(w=>w.w),
+                spellRem: spellRemaining.map(w=>w.w)
+            };
+            const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'WordWarrior_Save.json'; a.click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    rawWords = data.rawWords;
+                    quizRemaining = rawWords.filter(w => data.quizRem.includes(w.w));
+                    spellRemaining = rawWords.filter(w => data.spellRem.includes(w.w));
+                    
+                    updateTotalCounts();
+                    generateQuiz();
+                    generateSpell();
+                    alert("进度恢复成功！");
+                } catch(err) { alert("进度文件无效"); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        // --- 6. 音频功能 ---
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        function playSound(type) {
+            if (!audioCtx) initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            
+            if (type === 'correct') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            } else {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+        function speak(text) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+    </script>
+</body>
+</html>
