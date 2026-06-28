@@ -502,7 +502,7 @@
 
         .option-list {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
         }
 
@@ -525,6 +525,10 @@
             border-color: rgba(4,154,104,0.24);
         }
 
+        .option-item.fuzzy-action {
+            border-color: rgba(217,119,6,0.24);
+        }
+
         .option-item.unknown-action {
             border-color: rgba(220,38,38,0.20);
         }
@@ -544,6 +548,12 @@
             background: var(--danger-soft);
             border-color: var(--danger);
             color: #8C2E2E;
+        }
+
+        .option-item.fuzzy {
+            background: #FEF3C7;
+            border-color: #D97706;
+            color: #92400E;
         }
 
         .spell-def {
@@ -1175,7 +1185,7 @@
                         <div class="panel-head">
                             <div>
                                 <h2>看英文，判断是否认识</h2>
-                                <p>认识就移出本轮；不认识会进入错题复习。</p>
+                                <p>直接判断熟悉程度；模糊和不认识会进入复习记录。</p>
                             </div>
                             <div class="progress-pill"><span id="quiz-progress-text">0 / 0</span></div>
                         </div>
@@ -1226,7 +1236,7 @@
                 <section id="module-review" class="module-section">
                     <div class="review-grid">
                         <div class="list-panel">
-                            <h3>不认识记录</h3>
+                            <h3>模糊 / 不认识记录</h3>
                             <div id="quiz-lb-list" class="review-list"></div>
                         </div>
                         <div class="list-panel">
@@ -1367,28 +1377,36 @@
             const container = document.getElementById('quiz-options');
             container.innerHTML = '';
             [
-                { label: '认识', knowsWord: true, className: 'know-action' },
-                { label: '不认识', knowsWord: false, className: 'unknown-action' }
+                { label: '认识', status: 'known', className: 'know-action' },
+                { label: '模糊', status: 'fuzzy', className: 'fuzzy-action' },
+                { label: '不认识', status: 'unknown', className: 'unknown-action' }
             ].forEach(action => {
                 const btn = document.createElement('button');
                 btn.className = `option-item ${action.className}`;
                 btn.innerText = action.label;
-                btn.onclick = () => checkQuiz(btn, action.knowsWord);
+                btn.onclick = () => checkQuiz(btn, action.status);
                 container.appendChild(btn);
             });
         }
 
-        function checkQuiz(btn, knowsWord) {
+        function checkQuiz(btn, status) {
             const btns = document.querySelectorAll('#quiz-options .option-item');
             btns.forEach(b => b.disabled = true);
             const resDiv = document.getElementById('quiz-result');
 
-            if (knowsWord) {
+            if (status === 'known') {
                 btn.classList.add('correct');
                 playSound('correct');
                 resDiv.innerText = `已掌握：${currentQuizTarget.d}`;
                 resDiv.style.color = 'var(--success)';
                 quizRemaining = quizRemaining.filter(w => w.w !== currentQuizTarget.w);
+                speak(currentQuizTarget.w);
+            } else if (status === 'fuzzy') {
+                btn.classList.add('fuzzy');
+                playSound('wrong');
+                resDiv.innerText = `标记模糊：${currentQuizTarget.d}`;
+                resDiv.style.color = '#D97706';
+                currentQuizTarget.quizErr += 1;
                 speak(currentQuizTarget.w);
             } else {
                 btn.classList.add('wrong');
